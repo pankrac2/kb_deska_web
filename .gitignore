@@ -7,3 +7,4 @@ urls-new.json
 qr-codes/
 qr-codes-*/
 .netlify/
+.AGENT_DATA/
