@@ -1,0 +1,79 @@
+================================================================================
+ALBUM DOWNLOAD SITE — HOSTING SUGGESTIONS
+================================================================================
+
+Your requirements: free/cheap, static site + backend (token check, limited downloads),
+storage for tokens and one ZIP file, custom domain, SSL included.
+
+All options below support custom domain + free SSL (HTTPS).
+
+--------------------------------------------------------------------------------
+RECOMMENDED (BEST FIT FOR YOUR STACK)
+--------------------------------------------------------------------------------
+
+1) NETLIFY
+   - What you get: Static site hosting + serverless Functions + Netlify Blobs (key-value store).
+   - Free tier: Static hosting, 125k function invocations/month, 300 build minutes/month; Blobs consumption may use credits (check current pricing).
+   - Custom domain + SSL: Yes, automatic HTTPS.
+   - Fit: One project = static site + API routes as Netlify Functions; store tokens (and optionally metadata like exhausted_at) in Blobs. Album ZIP can live in Blobs or in a large file store (Netlify has size limits per file; for large ZIP consider external object storage and generate signed URLs from a Function).
+   - Bandwidth: 100 GB/month on free tier (typical for a band project).
+   - URL: https://www.netlify.com
+
+2) VERCEL
+   - What you get: Static site + serverless Functions (Serverless / Edge). For key-value storage, use Upstash Redis (integrated in Vercel dashboard; free tier).
+   - Free tier: Generous function invocations (e.g. 100k/day), 100 GB bandwidth; Upstash free tier: 256 MB, 500k commands/month (more than enough for token storage).
+   - Custom domain + SSL: Yes.
+   - Fit: Deploy static frontend + API routes; store tokens in Upstash. Same as Netlify: for a large album ZIP, consider Vercel Blob or external storage + signed URL from a function.
+   - URL: https://vercel.com | Upstash: https://upstash.com
+
+3) CLOUDFLARE PAGES
+   - What you get: Static site + Cloudflare Pages Functions (Workers); Cloudflare KV for key-value storage.
+   - Free tier: Unlimited bandwidth (big plus), 100k requests/day for Workers; KV: 100k reads/day, 1k writes/day free (check current limits). Very good for read-heavy, write-rarely (token status = read; decrement = write).
+   - Custom domain + SSL: Yes (Cloudflare is known for SSL and DDoS protection).
+   - Fit: Static site on Pages; Functions for /api/download/:token (status + get); KV stores token → { remaining, max, exhausted_at }. For the ZIP file: Workers can stream from R2 (Cloudflare’s object storage) — R2 has a free tier (e.g. 10 GB storage, no egress fees in some regions).
+   - URL: https://pages.cloudflare.com
+
+--------------------------------------------------------------------------------
+COMPARISON (QUICK)
+--------------------------------------------------------------------------------
+
+|                  | Netlify      | Vercel + Upstash | Cloudflare Pages + KV |
+|------------------|-------------|------------------|------------------------|
+| Static + API     | Yes         | Yes              | Yes                    |
+| Token storage    | Blobs       | Upstash Redis    | KV                     |
+| Bandwidth (free) | 100 GB/mo   | 100 GB/mo        | Unlimited              |
+| SSL / custom dom | Yes         | Yes              | Yes                    |
+| Album file       | Blob or ext | Blob or ext      | R2 or ext              |
+
+--------------------------------------------------------------------------------
+EUROPE-FOCUSED (IF YOU PREFER EU DATA / GDPR)
+--------------------------------------------------------------------------------
+
+4) STATICHOST.EU (European alternative)
+   - EU-based (Sweden), GDPR-oriented. Free plan: static hosting, 10 GB bandwidth, custom domain, HTTPS. API/backend is on paid Starter (e.g. €9/month). So “free” only if you host static elsewhere and use a separate free backend (e.g. Cloudflare Workers + KV) for the API.
+   - URL: https://www.statichost.eu
+
+5) IONOS DEPLOY NOW
+   - German provider, European data. Can deploy from GitHub. Check current offering for serverless/API support and free tier.
+   - URL: https://www.ionos.com
+
+For “free/cheap” and “no backoffice,” the best balance is: Netlify, Vercel, or Cloudflare Pages. Cloudflare stands out if you expect more downloads (unlimited bandwidth) and want to keep the album file on R2.
+
+--------------------------------------------------------------------------------
+WHERE TO PUT THE ALBUM ZIP
+--------------------------------------------------------------------------------
+
+- If the ZIP is small (e.g. under ~50 MB): some hosts allow storing in Blob/asset and serving via a function (with token check). Check size limits per platform.
+- If the ZIP is large or you want to avoid hitting host limits: use object storage (e.g. Cloudflare R2, Backblaze B2, or AWS S3) and have your serverless function generate a short-lived signed URL after validating the token. Many of these have free tiers (e.g. R2 10 GB, B2 10 GB).
+
+--------------------------------------------------------------------------------
+RECOMMENDATION SUMMARY
+--------------------------------------------------------------------------------
+
+- Prefer “everything in one place” and simple setup → Netlify (static + Functions + Blobs).
+- Prefer “unlimited bandwidth” and integrated object storage → Cloudflare Pages + KV + R2.
+- Prefer “great DX and common in frontend world” → Vercel + Upstash.
+
+All three are free-tier friendly and support your use case (configurable download limit, remaining count, exhausted_at, bulk + on-demand token generation, QR script run locally).
+
+================================================================================

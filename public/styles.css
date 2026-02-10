@@ -1,0 +1,147 @@
+/* Album download site — Kona Boj style (easily editable) */
+:root {
+  --color-bg: #1a1a1a;
+  --color-surface: #252525;
+  --color-text: #e8e8e8;
+  --color-text-muted: #a0a0a0;
+  --color-accent: #c45c2a;
+  --color-accent-hover: #e07038;
+  --color-error: #c44;
+  --font-body: "Segoe UI", system-ui, sans-serif;
+  --font-heading: "Georgia", serif;
+  --max-width: 42rem;
+  --space: 1.5rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-bg);
+  min-height: 100vh;
+}
+
+.page {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--space);
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  margin: 0 0 0.25em;
+  color: var(--color-text);
+}
+
+.tagline {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+}
+
+.content {
+  flex: 1;
+}
+
+.content h2 {
+  font-size: 1.25rem;
+  margin: 0 0 0.75em;
+}
+
+.content p {
+  margin: 0 0 0.75em;
+}
+
+.content p:last-child {
+  margin-bottom: 0;
+}
+
+.cta {
+  margin-top: 1.5rem;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
+}
+
+.back {
+  margin-top: 1.5rem;
+}
+
+.actions {
+  margin-top: 1rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-family: inherit;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+#status.error p {
+  color: var(--color-error);
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: var(--space);
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.footer a {
+  color: var(--color-text-muted);
+}
+
+.footer a:hover {
+  color: var(--color-accent);
+}
+
+.links {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}

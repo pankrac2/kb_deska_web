@@ -1,0 +1,96 @@
+================================================================================
+ALBUM DOWNLOAD SITE — FINAL SOLUTION SUGGESTION
+================================================================================
+
+This ties together: main page, unique download URLs with limited downloads, no backoffice, editable to match konaboj.cz, and a way to generate QR codes.
+
+
+1) SITE STRUCTURE
+-----------------
+
+  - Domain: album.konaboj.cz (main) and album.konaboj.cz/download/<token> (download page).
+
+  - Main page (album.konaboj.cz):
+    - Static: band/album info, short note like “Use the code from your booklet to download.”
+    - Styling: match konaboj.cz (colours, fonts, simple layout). Use CSS variables or a small config so you can change colours/fonts in one place.
+
+  - Download page (album.konaboj.cz/download/<token>):
+    - Same look and feel.
+    - Shows: status (e.g. “You have 1 download left” or “This code has already been used”) and a download button (only if remaining > 0).
+    - Button triggers: backend returns a one-time or time-limited download URL (or streams the file); backend decrements “remaining” when download starts (or when link is generated).
+
+
+2) RECOMMENDED TECH STACK (CONCRETE)
+------------------------------------
+
+  - Frontend:
+    - Static site: HTML + CSS (with variables for band style). Optionally 11ty or Astro if you want templates and a config file.
+    - Download page: one template that takes token from the path; minimal JS to call the backend for status and for “get download link,” then redirect or trigger download.
+
+  - Backend (choose one):
+
+    A) Serverless (e.g. Netlify or Vercel):
+       - One function: e.g. GET /api/download/:token?action=status|get
+         - action=status → return { valid, remaining, message }.
+         - action=get → decrement remaining (if > 0), return redirect URL or stream.
+       - Store: Netlify Blobs or Vercel KV (or Upstash). Key = token, value = { remaining, max }.
+       - Album file: in Blob storage or S3/R2; backend generates signed URL or streams from Blob.
+       - Seeding: one-off script (Node) that generates N tokens, writes them to Blob/KV via provider SDK. No backoffice.
+
+    B) Small server (e.g. Node on Railway/Render or a VPS):
+       - Serves static (or point domain static to Netlify and only run API on api.album.konaboj.cz).
+       - Same API: status + get download. Persistence: single JSON file or SQLite (path e.g. ./data/tokens.json or ./data/tokens.sqlite).
+       - Generator script (same repo or same machine): generates tokens, appends to that file. No backoffice.
+
+  - QR codes:
+    - Local Node script using “qrcode” (node-qrcode).
+    - Input: list of tokens (from your backend’s store or from a file you maintain).
+    - For each token: URL = https://album.konaboj.cz/download/<token>, generate PNG (or SVG), save to folder.
+    - Use that folder for the printer or booklet layout. Run script whenever you need a new batch.
+
+
+3) TOKEN FORMAT AND GENERATION
+------------------------------
+
+  - Generate with crypto: e.g. 16 bytes (128-bit) random, encode as base64url (22 chars) or hex (32 chars). No need for UUID format unless you like it.
+  - Store: token → { remaining: number, max: number } (e.g. max 1 or 3). When remaining hits 0, treat as “used”; optionally keep a “used_at” for your own records.
+  - Generator (no backoffice): script that (1) generates N tokens, (2) writes them to your store (file or KV) with remaining = max, (3) optionally outputs a list of URLs so you can feed the QR script.
+
+
+4) SECURITY IN SHORT
+--------------------
+
+  - HTTPS only.
+  - Tokens: cryptographically random, long enough (128-bit).
+  - Token store (file or KV) not publicly readable; only backend reads/writes.
+  - Optional: rate limit by IP on the “get download” endpoint to avoid brute force (optional for low traffic).
+  - Album file: not under a guessable path; only served after valid token check.
+
+
+5) EDITABLE TO MATCH BAND STYLE
+-------------------------------
+
+  - One CSS file (or 11ty/Astro global styles) with variables, e.g. --color-primary, --font-heading, --font-body. Match konaboj.cz palette and fonts.
+  - Copy structure and tone from konaboj.cz: short text, clear layout, links to socials. No need for a CMS; edit HTML or Markdown and redeploy.
+
+
+6) WHAT YOU DON’T NEED
+----------------------
+
+  - No full backoffice: no admin UI. You only need a repeatable way to (1) add tokens and (2) get QR images. That’s a script + (optional) one protected “seed” endpoint or direct file/Blob write from the script.
+  - No user accounts, no login. The token in the URL is the only “auth.”
+
+
+7) STEPS TO IMPLEMENT (HIGH LEVEL)
+----------------------------------
+
+  1. Set up domain and SSL (e.g. album.konaboj.cz).
+  2. Create static site: main page + download page (template with token in path). Style like konaboj.cz.
+  3. Implement backend: one API (status + get download), persistence = file or KV. Deploy (serverless or small server).
+  4. Upload album file to secure storage; backend serves or signs URL after token check.
+  5. Write generator script: create tokens, add to store, output list of URLs.
+  6. Write QR script: read URLs (or generate from tokens), output folder of QR images with node-qrcode.
+  7. Test: create one token, open download page, confirm “remaining” and download, then confirm “already used.”
+  8. For booklet: run generator for batch size you need, run QR script, send images to printer.
+
+================================================================================

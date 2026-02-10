@@ -1,0 +1,38 @@
+# Album download site — Netlify
+# Set env vars in Netlify UI: Site settings → Environment variables
+
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA-style routing: /download/* serves the same download page (JS reads token from path)
+[[redirects]]
+  from = "/download/*"
+  to = "/download.html"
+  status = 200
+  force = true
+
+# API: download status and use — pass token so function can read it (rewrite strips path)
+[[redirects]]
+  from = "/api/download/*"
+  to = "/.netlify/functions/download?token=:splat"
+  status = 200
+  force = true
+
+# Admin: generate new tokens (protect with ADMIN_SECRET in production)
+[[redirects]]
+  from = "/api/admin/generate"
+  to = "/.netlify/functions/admin-generate"
+  status = 200
+  force = true
+
+# Optional: list exhausted tokens (for export/report)
+[[redirects]]
+  from = "/api/admin/exhausted"
+  to = "/.netlify/functions/admin-exhausted"
+  status = 200
+  force = true

@@ -1,0 +1,23 @@
+{
+  "name": "kb-deska-album-download",
+  "version": "1.0.0",
+  "description": "Album download site with unique QR codes — Netlify serverless",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'Static site — no build step'",
+    "generate-qr": "node scripts/generate-qr.mjs",
+    "fetch-urls": "node scripts/call-generate.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^5.0.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "netlify-cli": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

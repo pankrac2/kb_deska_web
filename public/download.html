@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stažení alba | Kona Boj</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <h1 class="title">Kona Boj</h1>
+      <p class="tagline">Stažení alba</p>
+    </header>
+
+    <section class="content" id="download-section">
+      <div id="status" aria-live="polite">
+        <p>Kontroluji kód…</p>
+      </div>
+      <div id="actions" class="actions" hidden>
+        <button type="button" id="download-btn" class="btn btn-primary">Stáhnout album</button>
+      </div>
+      <p class="back"><a href="/">← Zpět na úvod</a></p>
+    </section>
+
+    <footer class="footer">
+      <p><a href="http://www.konaboj.cz/">www.konaboj.cz</a></p>
+    </footer>
+  </main>
+
+  <script>
+    (function () {
+      const pathname = window.location.pathname;
+      const match = pathname.match(/^\/download\/([^/]+)/);
+      const token = match ? match[1] : null;
+
+      const statusEl = document.getElementById('status');
+      const actionsEl = document.getElementById('actions');
+      const downloadBtn = document.getElementById('download-btn');
+
+      function setStatus(html, isError) {
+        statusEl.innerHTML = html;
+        statusEl.classList.toggle('error', !!isError);
+      }
+
+      function setLoading() {
+        setStatus('<p>Kontroluji kód…</p>');
+        actionsEl.hidden = true;
+      }
+
+      if (!token) {
+        setStatus(
+          '<p>Neplatná adresa. Použijte odkaz z bookletu (QR kód) nebo zadejte celou adresu stažení.</p>',
+          true
+        );
+        return;
+      }
+
+      const apiBase = window.location.origin + '/api/download/' + encodeURIComponent(token);
+
+      async function fetchStatus() {
+        const res = await fetch(apiBase);
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setStatus(
+            '<p>' + (data.error || 'Kód není platný nebo vypršel.') + '</p>',
+            true
+          );
+          return null;
+        }
+        return res.json();
+      }
+
+      async function useDownload() {
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = 'Přesměrovávám…';
+        const res = await fetch(apiBase + '?action=use', { redirect: 'manual' });
+        const location = res.headers.get('Location');
+        if (res.status === 302 && location) {
+          window.location.href = location;
+          return;
+        }
+        if (res.ok) {
+          const data = await res.json();
+          setStatus(
+            '<p>' + (data.message || 'Stažení dokončeno.') + '</p>',
+            false
+          );
+        } else {
+          const data = await res.json().catch(() => ({}));
+          setStatus('<p>' + (data.error || 'Stažení se nezdařilo.') + '</p>', true);
+        }
+        actionsEl.hidden = true;
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = 'Stáhnout album';
+      }
+
+      downloadBtn.addEventListener('click', useDownload);
+
+      (async function init() {
+        setLoading();
+        const data = await fetchStatus();
+        if (!data) return;
+        if (data.remaining !== undefined) {
+          setStatus(
+            '<p>' + (data.message || data.remaining + ' / ' + data.max + ' stažení zbývá.') + '</p>'
+          );
+          if (data.remaining > 0) {
+            actionsEl.hidden = false;
+          }
+        }
+      })();
+    })();
+  </script>
+</body>
+</html>

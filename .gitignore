@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+!.env.example
+urls.json
+urls-new.json
+qr-codes/
+qr-codes-*/
+.netlify/

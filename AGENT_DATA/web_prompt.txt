@@ -1,0 +1,34 @@
+As a music band we want to sell our new album to customers. The idea is we will sell a booklet with QR code in it. The QR code should open a web site with a download option.
+Each download option should be on unique, unguessable site (hash, guid etc.) with limited number of downloads. I must be able to generate new QR codes with unique link.
+I dont really need a backoffice.
+
+
+Do: brainstorming | ask questions | search proper solution | suggest a tech stack | suggest final solution | save ideas to text files
+Do not: write any code
+
+
+
+Site specifications:
+    - It will be hosted on some domain
+    - There should be main page with info
+    - There must be functionality to download the album when a user accesses the site with specific URL
+    - The site must be easily editable to match band style (http://www.konaboj.cz/ our website)
+
+
+URL example
+    - Lets say the domain is: album.konaboj.cz => This should lead to Main page
+    - Example of download page: album.konaboj.cz/download/98ada89ad-1238a8d8aw-123098a7fa-oiqwnvva => This will show a download option and info wether it was already downloaded
+
+
+
+Answers I need:
+    - What should be frontend stack?
+    - What should be backend stack?
+    - Can I do it safely without using database? What are tradeoffs of this approach?
+    - What can I use to generate said QR code?
+
+
+
+Think and ask questions.
+
+        
