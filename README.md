@@ -1,4 +1,4 @@
-# Album download site — Kona Boj
+# Album download site
 
 Serverless album download site on **Netlify**: unique QR codes per booklet, limited downloads per code, no backoffice.
 
@@ -23,7 +23,7 @@ Serverless album download site on **Netlify**: unique QR codes per booklet, limi
    - Set **environment variables** (Site settings → Environment variables):
      - `ADMIN_SECRET` — strong random string; used to call the generate API and the exhausted list.
      - `ALBUM_FILE_URL` — full URL of the album ZIP (e.g. S3 signed URL, or any URL that serves the file). Users are redirected here after a valid “use” request.
-     - `SITE_URL` (optional) — e.g. `https://album.konaboj.cz`; used when generating token URLs. If unset, the API uses the request origin.
+     - `SITE_URL` (optional) — e.g. `https://album.xxx.cz`; used when generating token URLs. If unset, the API uses the request origin.
    - Deploy. Your site will be at the Netlify URL or your custom domain.
 
 3. **Generate tokens and QR codes**
@@ -36,14 +36,14 @@ Serverless album download site on **Netlify**: unique QR codes per booklet, limi
 |-------------------|----------|-------------|
 | `ADMIN_SECRET`    | Yes      | Secret for `/api/admin/generate` and `/api/admin/exhausted`. Use a long random string. |
 | `ALBUM_FILE_URL` | Yes      | URL where the album ZIP is served. User is redirected here when they “use” one download. |
-| `SITE_URL`       | No       | Base URL of the site (e.g. `https://album.konaboj.cz`). Used in generated download URLs. |
+| `SITE_URL`       | No       | Base URL of the site (e.g. `https://album.xxx.cz`). Used in generated download URLs. |
 
 ## Generate new tokens
 
 ### Option A: Call the API from your machine
 
 ```bash
-SITE_URL=https://album.konaboj.cz ADMIN_SECRET=your-secret node scripts/call-generate.mjs 200 3
+SITE_URL=https://album.xxx.cz ADMIN_SECRET=your-secret node scripts/call-generate.mjs 200 3
 ```
 
 - `200` = number of tokens to create  
@@ -54,7 +54,7 @@ This POSTs to `/api/admin/generate` and appends the new URLs to `urls.json` (and
 ### Option B: curl
 
 ```bash
-curl -X POST https://album.konaboj.cz/api/admin/generate \
+curl -X POST https://album.xxx.cz/api/admin/generate \
   -H "Content-Type: application/json" \
   -d '{"secret":"YOUR_ADMIN_SECRET","count":200,"maxDownloads":3}'
 ```
