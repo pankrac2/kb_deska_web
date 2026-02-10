@@ -81,7 +81,7 @@ Then use the PNGs in your booklet layout or send to the printer.
 ## Export exhausted codes (date/time when limit reached)
 
 ```bash
-curl "https://album.konaboj.cz/api/admin/exhausted?secret=YOUR_ADMIN_SECRET"
+curl "https://album.xxx.cz/api/admin/exhausted?secret=YOUR_ADMIN_SECRET"
 ```
 
 Returns `{ "exhausted": [ { "token", "exhausted_at", "max" }, ... ], "count": N }`. You can save this for your own records.
