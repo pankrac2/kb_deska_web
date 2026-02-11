@@ -4,7 +4,7 @@
  * Then optionally run the QR generator.
  *
  * Usage:
- *   SITE_URL=https://album.konaboj.cz ADMIN_SECRET=your-secret node scripts/call-generate.mjs [count] [maxDownloads]
+ *   SITE_URL=https://album.xxx.cz ADMIN_SECRET=your-secret node scripts/call-generate.mjs [count] [maxDownloads]
  *   Or set in .env (not committed): SITE_URL, ADMIN_SECRET
  *
  * Default: count=10, maxDownloads=3
@@ -25,7 +25,7 @@ const siteUrl = process.env.SITE_URL || process.env.URL;
 const adminSecret = process.env.ADMIN_SECRET;
 
 if (!siteUrl) {
-  console.error("Set SITE_URL (e.g. https://album.konaboj.cz)");
+  console.error("Set SITE_URL (e.g. https://album.xxx.cz)");
   process.exit(1);
 }
 if (!adminSecret) {

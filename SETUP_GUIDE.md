@@ -96,7 +96,7 @@ Wait for the first deploy to finish. You’ll get a URL like `https://random-nam
   The exact URL where the album ZIP is available (e.g. `https://your-bucket.s3.amazonaws.com/album.zip` or your Dropbox/R2 direct link).
 
 - **SITE_URL**  
-  Your public site URL. For a custom domain use that (e.g. `https://album.konaboj.cz`). For the default Netlify URL use e.g. `https://random-name-12345.netlify.app`.  
+  Your public site URL. For a custom domain use that (e.g. `https://album.xxx.cz`). For the default Netlify URL use e.g. `https://random-name-12345.netlify.app`.  
   If you don’t set it, the API will use the request host when generating links; setting it is recommended.
 
 3. Save. Then trigger a **new deploy** so the new env vars are applied: **Deploys** → **Trigger deploy** → **Deploy site**.
@@ -106,10 +106,10 @@ Wait for the first deploy to finish. You’ll get a URL like `https://random-nam
 ## Step 5: (Optional) Add a custom domain
 
 1. **Site configuration** → **Domain management** → **Add domain** / **Add custom domain**.
-2. Enter your domain (e.g. `album.konaboj.cz`).
+2. Enter your domain (e.g. `album.xxx.cz`).
 3. Follow Netlify’s instructions to add the DNS records at your domain provider (CNAME or A record).
 4. Enable **HTTPS** (Netlify will issue a certificate automatically).
-5. Set **SITE_URL** (in env vars) to `https://album.konaboj.cz` (or your chosen domain) and redeploy once.
+5. Set **SITE_URL** (in env vars) to `https://album.xxx.cz` (or your chosen domain) and redeploy once.
 
 ---
 
