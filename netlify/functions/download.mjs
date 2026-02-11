@@ -1,12 +1,13 @@
 /**
- * Download API: token status and use (decrement + redirect to album).
+ * Download API: token status and use (decrement + stream album from Blobs).
  * GET /api/download/:token         → { valid, remaining, max, exhausted_at }
- * GET /api/download/:token?action=use → 302 redirect to album (and decrement)
+ * GET /api/download/:token?action=use → stream album ZIP (and decrement)
  */
 
 import { getStore } from "@netlify/blobs";
 
 const STORE_NAME = "album-tokens";
+const ALBUM_KEY = "album:zip";
 
 function parseToken(req) {
   try {
@@ -78,11 +79,11 @@ export default async (req, context) => {
     );
   }
 
-  const albumUrl = process.env.ALBUM_FILE_URL;
-  if (!albumUrl) {
+  const albumBlob = await store.get(ALBUM_KEY, { type: "stream" });
+  if (!albumBlob) {
     return new Response(
-      JSON.stringify({ error: "Download not configured (ALBUM_FILE_URL missing)" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Album not uploaded yet. Use POST /api/admin/upload-album to upload the ZIP." }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
     );
   }
 
@@ -95,10 +96,11 @@ export default async (req, context) => {
   };
   await store.setJSON(token, newData);
 
-  return new Response(null, {
-    status: 302,
+  return new Response(albumBlob, {
+    status: 200,
     headers: {
-      Location: albumUrl,
+      "Content-Type": "application/zip",
+      "Content-Disposition": 'attachment; filename="album.zip"',
       "Cache-Control": "no-store",
     },
   });

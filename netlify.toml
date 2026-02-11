@@ -30,6 +30,13 @@
   status = 200
   force = true
 
+# Admin: upload album ZIP to Blobs
+[[redirects]]
+  from = "/api/admin/upload-album"
+  to = "/.netlify/functions/admin-upload-album"
+  status = 200
+  force = true
+
 # Optional: list exhausted tokens (for export/report)
 [[redirects]]
   from = "/api/admin/exhausted"

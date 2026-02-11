@@ -12,31 +12,9 @@ Follow these steps to get the site live on Netlify and start generating QR codes
 
 ---
 
-## Step 1: Host the album file and get a URL
+## Step 1: Prepare the album ZIP
 
-The site will redirect customers to this URL after they use a valid code. You need a URL that serves your ZIP file.
-
-### Option A: Netlify Blob (same account, no extra service)
-
-1. You’ll upload the album after the site exists (see Step 5).  
-2. For now, you can use any **temporary** URL (e.g. a file host) and change it later to the Netlify Blob URL.
-
-### Option B: Cloudflare R2 (free tier, private file)
-
-1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → R2 Object Storage.
-2. Create a bucket (e.g. `album-downloads`), keep it **private**.
-3. Upload your album ZIP.
-4. Create an **API token** with R2 read access.
-5. You’ll generate **signed URLs** from your Netlify function (optional; see “Private album” section later).  
-   For the simplest start, you can use a **public** R2 URL or another host and set that as `ALBUM_FILE_URL`.
-
-### Option C: Simple file host (e.g. Dropbox, Google Drive)
-
-1. Upload the ZIP and get a **direct download link** (e.g. Dropbox “Get link” → change `?dl=0` to `?dl=1` for direct download).
-2. Use this link as `ALBUM_FILE_URL`.  
-   Note: anyone with the link can download; the token only limits who gets the link from your site.
-
-**For this guide we assume you have one URL** (from any option above). If you don’t yet, use a placeholder like `https://example.com/album.zip` and replace it in Step 4 after you have the real URL.
+The album ZIP is stored in **Netlify Blobs** and uploaded after the site is deployed (see Step 6). Have your album ZIP file ready (MP3s, artwork, etc.). No external hosting needed.
 
 ---
 
@@ -80,26 +58,22 @@ Wait for the first deploy to finish. You’ll get a URL like `https://random-nam
 ## Step 4: Set environment variables
 
 1. In Netlify: **Site overview** → **Site configuration** → **Environment variables** (or **Site settings** → **Environment variables**).
-2. Click **“Add a variable”** / **“Add environment variable”** and add these one by one.
+2. Click **“Add a variable”** / **“Add environment variable”** and add:
 
-| Variable           | Value                    | Scopes      |
-|--------------------|--------------------------|-------------|
-| `ADMIN_SECRET`     | A long random string     | All         |
-| `ALBUM_FILE_URL`   | Full URL of the album ZIP| All         |
-| `SITE_URL`         | Your site URL (see below)| All (optional) |
+| Variable       | Value                | Scopes        |
+|----------------|----------------------|---------------|
+| `ADMIN_SECRET` | A long random string | All           |
+| `SITE_URL`     | Your site URL        | All (optional)|
 
 - **ADMIN_SECRET**  
-  Generate a random string (e.g. 32+ characters). You’ll use it to call the generate API and the exhausted list.  
+  Generate a random string (e.g. 32+ characters). Used for uploading the album, generating tokens, and the exhausted list.  
   Example (run in terminal): `node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"`
-
-- **ALBUM_FILE_URL**  
-  The exact URL where the album ZIP is available (e.g. `https://your-bucket.s3.amazonaws.com/album.zip` or your Dropbox/R2 direct link).
 
 - **SITE_URL**  
   Your public site URL. For a custom domain use that (e.g. `https://album.xxx.cz`). For the default Netlify URL use e.g. `https://random-name-12345.netlify.app`.  
   If you don’t set it, the API will use the request host when generating links; setting it is recommended.
 
-3. Save. Then trigger a **new deploy** so the new env vars are applied: **Deploys** → **Trigger deploy** → **Deploy site**.
+3. Save. Then trigger a **new deploy**: **Deploys** → **Trigger deploy** → **Deploy site**.
 
 ---
 
@@ -113,33 +87,49 @@ Wait for the first deploy to finish. You’ll get a URL like `https://random-nam
 
 ---
 
-## Step 6: Verify the site works
+## Step 6: Upload the album and verify the site
 
-1. **Main page**  
-   Open `https://your-site.netlify.app` (or your custom domain). You should see the main page with the link to the download page.
+1. **Upload the album ZIP**  
+   The album is stored in Netlify Blobs. Upload it via the admin API (replace `YOUR-SITE`, `YOUR_ADMIN_SECRET`, and the file path):
 
-2. **Download page without token**  
+   **Windows (PowerShell):**
+   ```powershell
+   curl.exe -X POST https://YOUR-SITE.netlify.app/api/admin/upload-album `
+     -H "X-Admin-Secret: YOUR_ADMIN_SECRET" `
+     -F "file=@C:\path\to\album.zip"
+   ```
+
+   **macOS/Linux:**
+   ```bash
+   curl -X POST https://YOUR-SITE.netlify.app/api/admin/upload-album \
+     -H "X-Admin-Secret: YOUR_ADMIN_SECRET" \
+     -F "file=@/path/to/album.zip"
+   ```
+
+   You should get `{"ok":true,"message":"Album uploaded successfully","size":12345}`. Re-uploading replaces the previous album.
+
+2. **Main page**  
+   Open `https://your-site.netlify.app` (or your custom domain). You should see the main page.
+
+3. **Download page without token**  
    Open `https://your-site.netlify.app/download/`. You should see a message that the address is invalid or the code is missing.
 
-3. **Generate a test token**  
-   In a terminal (or Postman):
-
+4. **Generate a test token**
    ```bash
    curl -X POST https://YOUR-SITE.netlify.app/api/admin/generate ^
      -H "Content-Type: application/json" ^
      -d "{\"secret\":\"YOUR_ADMIN_SECRET\",\"count\":1,\"maxDownloads\":3}"
    ```
+   (On macOS/Linux use `\` and single quotes: `-d '{"secret":"...","count":1,"maxDownloads":3}'`.)
 
-   (On macOS/Linux use `\` for line continuation and single quotes: `-d '{"secret":"...","count":1,"maxDownloads":3}'`.)
+   You should get JSON with `urls` containing one URL.
 
-   You should get JSON with `urls` containing one URL like `https://your-site.netlify.app/download/xxxxx`.
-
-4. **Test the download page**  
+5. **Test the download page**  
    Open that URL in the browser. You should see “X download(s) left” and a “Stáhnout album” button.  
-   Click it: you should be redirected to `ALBUM_FILE_URL` and the download should start (or the file should open).  
+   Click it: the album ZIP should download directly (streamed from Blobs).  
    Refresh the page: remaining count should decrease. After 3 uses (if you used `maxDownloads: 3`) it should show that the code is used up.
 
-If anything fails, check **Site configuration** → **Functions** and **Deploy** logs for errors.
+If anything fails, check **Site configuration** → **Functions** and **Deploy** logs.
 
 ---
 
@@ -204,9 +194,9 @@ Save the JSON to a file if you need it for accounting.
 - [ ] New site created on Netlify, connected to repo  
 - [ ] First deploy successful  
 - [ ] `ADMIN_SECRET` set in Netlify env  
-- [ ] `ALBUM_FILE_URL` set (real URL of the album ZIP)  
 - [ ] `SITE_URL` set (optional but recommended)  
 - [ ] New deploy triggered after adding env vars  
+- [ ] Album ZIP uploaded via `POST /api/admin/upload-album`  
 - [ ] Custom domain added and HTTPS on (if you use one)  
 - [ ] Test token generated and download flow tested  
 - [ ] Local `.env` with `SITE_URL` and `ADMIN_SECRET`  
@@ -218,8 +208,6 @@ Save the JSON to a file if you need it for accounting.
 ## Troubleshooting
 
 - **“ADMIN_SECRET not configured”** → Add `ADMIN_SECRET` in Netlify and redeploy.  
-- **“Download not configured (ALBUM_FILE_URL missing)”** when clicking Stáhnout → Add `ALBUM_FILE_URL` and redeploy.  
-- **Redirect doesn’t start download** → Check that `ALBUM_FILE_URL` is a direct file URL (not a page that shows a “Download” button). For Dropbox, use `?dl=1`.  
+- **“Album not uploaded yet”** when clicking Stáhnout → Upload the ZIP via `POST /api/admin/upload-album` (see Step 6).  
+- **Upload returns 401 Unauthorized** → Check that the `X-Admin-Secret` header (or form field `secret`) matches your `ADMIN_SECRET` env var.  
 - **QR script says “No URLs found”** → Run `call-generate.mjs` first so that `urls.json` or `urls-new.json` exists and contains an `urls` array.
-
-If you tell me your hosting choice for the album file (Netlify Blob, R2, S3, etc.), I can add a short “Private album (signed URL)” section to this guide.
