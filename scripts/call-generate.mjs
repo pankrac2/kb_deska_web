@@ -18,6 +18,18 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 
+// Load .env from project root so SITE_URL and ADMIN_SECRET are set when not in shell
+try {
+  const envPath = join(root, ".env");
+  const raw = await readFile(envPath, "utf8");
+  for (const line of raw.split("\n")) {
+    const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
+  }
+} catch {
+  // no .env or unreadable — rely on process.env
+}
+
 const count = Math.min(5000, Math.max(1, parseInt(process.argv[2], 10) || 10));
 const maxDownloads = Math.min(100, Math.max(1, parseInt(process.argv[3], 10) || 3));
 
