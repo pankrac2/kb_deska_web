@@ -12,6 +12,7 @@
  */
 
 import { writeFile, readFile, mkdir } from "fs/promises";
+import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -19,16 +20,24 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 
 // Load .env from project root so SITE_URL and ADMIN_SECRET are set when not in shell
-try {
-  const envPath = join(root, ".env");
-  const raw = await readFile(envPath, "utf8");
-  for (const line of raw.split("\n")) {
-    const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
+function loadEnv() {
+  try {
+    const envPath = join(root, ".env");
+    const raw = readFileSync(envPath, "utf8");
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const m = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+      if (m) {
+        const value = m[2].trim().replace(/^["']|["']$/g, "");
+        if (!process.env[m[1]]) process.env[m[1]] = value;
+      }
+    }
+  } catch {
+    // no .env or unreadable — rely on process.env
   }
-} catch {
-  // no .env or unreadable — rely on process.env
 }
+loadEnv();
 
 const count = Math.min(5000, Math.max(1, parseInt(process.argv[2], 10) || 10));
 const maxDownloads = Math.min(100, Math.max(1, parseInt(process.argv[3], 10) || 3));

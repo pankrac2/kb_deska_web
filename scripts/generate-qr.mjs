@@ -43,10 +43,10 @@ async function main() {
 
   await mkdir(outDir, { recursive: true });
 
-  const format = urls.length >= 100 ? "png" : "png";
+  const format = urls.length >= 100 ? "svg" : "svg";
   for (let i = 0; i < urls.length; i++) {
     const url = urls[i];
-    const filename = `qr-${String(i + 1).padStart(String(urls.length).length, "0")}.png`;
+    const filename = `qr-${String(i + 1).padStart(String(urls.length).length, "0")}.${format}`;
     const filepath = join(outDir, filename);
     await QRCode.toFile(filepath, url, { width: 400, margin: 2 });
     if ((i + 1) % 50 === 0 || i === 0) {
