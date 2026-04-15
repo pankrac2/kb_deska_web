@@ -8,3 +8,6 @@ qr-codes/
 qr-codes-*/
 .netlify/
 .AGENT_DATA/
+
+#For temp purposes when woring with AI agents
+.AI/*
