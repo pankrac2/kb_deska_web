@@ -38,21 +38,25 @@ export default async (req) => {
     });
   }
 
-  const store = getStore({ name: STORE_NAME });
+  const store = getStore({ name: STORE_NAME, consistency: "strong" });
   const exhausted = [];
-  const list = await store.list();
-  for (const blob of list.blobs || []) {
-    const token = blob.key;
-    if (!token) continue;
-    const data = await store.get(token, { type: "json" });
-    if (data && data.exhausted_at) {
-      exhausted.push({
-        token,
-        exhausted_at: data.exhausted_at,
-        max: data.max,
-      });
+  let cursor = undefined;
+  do {
+    const page = await store.list({ cursor });
+    for (const blob of page.blobs || []) {
+      const key = blob.key;
+      if (!key || key.includes(":")) continue;
+      const data = await store.get(key, { type: "json" });
+      if (data && data.exhausted_at) {
+        exhausted.push({
+          token: key,
+          exhausted_at: data.exhausted_at,
+          max: data.max,
+        });
+      }
     }
-  }
+    cursor = page.cursor;
+  } while (cursor);
 
   exhausted.sort((a, b) =>
     (a.exhausted_at || "").localeCompare(b.exhausted_at || "")

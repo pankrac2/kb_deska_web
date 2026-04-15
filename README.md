@@ -7,7 +7,7 @@ Serverless album download site on **Netlify**: unique QR codes per booklet, limi
 - **Main page**: info + “use your booklet code”
 - **Download page**: `/download/<token>` — shows remaining downloads and a download button
 - **API**: token status + use (decrement + stream album from Netlify Blobs)
-- **Admin**: upload album ZIP; generate new tokens via POST; optional export of exhausted codes
+- **Admin**: upload album ZIP; generate new tokens; list/delete tokens; download log; refund downloads; export exhausted codes
 
 ## Quick start
 
@@ -33,7 +33,7 @@ Serverless album download site on **Netlify**: unique QR codes per booklet, limi
 
 | Variable       | Required | Description |
 |----------------|----------|-------------|
-| `ADMIN_SECRET` | Yes      | Secret for upload, generate, and exhausted APIs. Use a long random string. |
+| `ADMIN_SECRET` | Yes      | Secret for all admin APIs (upload, generate, list, delete, log, refund, exhausted). Use a long random string. |
 | `SITE_URL`     | No       | Base URL of the site (e.g. `https://album.xxx.cz`). Used in generated download URLs. |
 
 The album ZIP is stored in **Netlify Blobs** and uploaded via the admin API (see below). No external URL needed.
@@ -97,14 +97,68 @@ After you have a JSON file with an `urls` array (or a plain array of URLs):
 npm run generate-qr
 ```
 
-Defaults: reads `urls.json` from the project root, writes PNGs to `qr-codes/`.  
+Defaults: reads `urls.json` from the project root, writes SVGs to `qr-codes/`.  
 Custom paths:
 
 ```bash
 node scripts/generate-qr.mjs urls-new.json qr-codes-new
 ```
 
-Then use the PNGs in your booklet layout or send to the printer.
+Then use the SVGs in your booklet layout or send to the printer.
+
+## List all tokens
+
+View all generated tokens and their current status:
+
+```bash
+curl "https://album.xxx.cz/api/admin/list-tokens?secret=YOUR_ADMIN_SECRET"
+```
+
+Filter by status — `active`, `exhausted`, or `all` (default):
+
+```bash
+curl "https://album.xxx.cz/api/admin/list-tokens?secret=YOUR_ADMIN_SECRET&status=active"
+```
+
+Returns `{ "tokens": [ { "token", "remaining", "max", "created_at", "exhausted_at" }, ... ], "count": N }`.
+
+## Delete tokens
+
+Remove one or more tokens permanently:
+
+```bash
+curl -X POST https://album.xxx.cz/api/admin/delete-tokens \
+  -H "Content-Type: application/json" \
+  -d '{"secret":"YOUR_ADMIN_SECRET","tokens":["token1","token2"]}'
+```
+
+Returns `{ "deleted": [...], "notFound": [...], "count": N }`.
+
+## Download log
+
+Every download attempt (`action=use`) is logged with outcome, IP, and user agent. View the log:
+
+```bash
+curl "https://album.xxx.cz/api/admin/download-log?secret=YOUR_ADMIN_SECRET"
+```
+
+Optional parameters: `&limit=100` (default 200, max 5000), `&token=SPECIFIC_TOKEN` (filter by token).
+
+Each entry has: `id`, `token`, `timestamp`, `outcome` (`success`, `exhausted`, `invalid_token`, `album_missing`), `remaining_before`, `remaining_after`, `ip`, `user_agent`.
+
+## Refund a download
+
+If the log shows a "success" but the user didn't receive the file (e.g. network failure), restore their download count:
+
+```bash
+curl -X POST https://album.xxx.cz/api/admin/refund \
+  -H "Content-Type: application/json" \
+  -d '{"secret":"YOUR_ADMIN_SECRET","token":"THE_TOKEN","amount":1}'
+```
+
+`amount` defaults to 1. The remaining count will not exceed the original max.
+
+Returns `{ "token", "remaining_before", "remaining_after", "max", "refunded" }`.
 
 ## Export exhausted codes (date/time when limit reached)
 
@@ -117,20 +171,24 @@ Returns `{ "exhausted": [ { "token", "exhausted_at", "max" }, ... ], "count": N 
 ## Project layout
 
 ```
-├── netlify.toml              # Build, redirects, env
+├── netlify.toml                 # Build, redirects, env
 ├── package.json
 ├── public/
-│   ├── index.html            # Main page
-│   ├── download.html         # Download page (token from URL path)
-│   └── styles.css             # Editable band style (CSS variables)
+│   ├── index.html               # Main page
+│   ├── download.html            # Download page (token from URL path)
+│   └── styles.css               # Editable band style (CSS variables)
 ├── netlify/functions/
-│   ├── download.mjs             # GET status, GET ?action=use → stream album
+│   ├── download.mjs             # GET status, GET ?action=use → stream album + log
 │   ├── admin-generate.mjs       # POST generate tokens
 │   ├── admin-upload-album.mjs   # POST upload ZIP to Blobs
+│   ├── admin-list-tokens.mjs    # GET list all tokens with status
+│   ├── admin-delete-tokens.mjs  # POST delete tokens
+│   ├── admin-download-log.mjs   # GET download event log
+│   ├── admin-refund.mjs         # POST refund download count
 │   └── admin-exhausted.mjs      # GET list exhausted tokens
 └── scripts/
-    ├── call-generate.mjs     # Call generate API, save urls.json
-    └── generate-qr.mjs      # URLs → QR PNGs
+    ├── call-generate.mjs        # Call generate API, save urls.json
+    └── generate-qr.mjs          # URLs → QR SVGs
 ```
 
 ## Styling

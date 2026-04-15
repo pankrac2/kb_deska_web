@@ -2,11 +2,15 @@
  * Download API: token status and use (decrement + stream album from Blobs).
  * GET /api/download/:token         → { valid, remaining, max, exhausted_at }
  * GET /api/download/:token?action=use → stream album ZIP (and decrement)
+ *
+ * Every action=use attempt is logged to the "download-log" store.
  */
 
 import { getStore } from "@netlify/blobs";
+import { randomBytes } from "crypto";
 
 const STORE_NAME = "album-tokens";
+const LOG_STORE = "download-log";
 const ALBUM_KEY = "album:zip";
 
 function parseToken(req) {
@@ -25,6 +29,32 @@ function getTokenData(store, token) {
   return store.get(token, { type: "json" });
 }
 
+function clientInfo(req) {
+  return {
+    ip: req.headers.get("x-nf-client-connection-ip") ||
+        req.headers.get("x-forwarded-for") ||
+        "unknown",
+    user_agent: req.headers.get("user-agent") || "unknown",
+  };
+}
+
+async function writeLog(token, outcome, remainingBefore, remainingAfter, req) {
+  try {
+    const logStore = getStore({ name: LOG_STORE, consistency: "strong" });
+    const id = `${Date.now()}-${randomBytes(4).toString("hex")}`;
+    await logStore.setJSON(id, {
+      token,
+      timestamp: new Date().toISOString(),
+      outcome,
+      remaining_before: remainingBefore,
+      remaining_after: remainingAfter,
+      ...clientInfo(req),
+    });
+  } catch {
+    // Logging must not break the download flow
+  }
+}
+
 export default async (req, context) => {
   const token = parseToken(req);
   if (!token) {
@@ -38,6 +68,10 @@ export default async (req, context) => {
   const data = await getTokenData(store, token);
 
   if (!data) {
+    const url = new URL(req.url);
+    if (url.searchParams.get("action") === "use") {
+      await writeLog(token, "invalid_token", null, null, req);
+    }
     return new Response(
       JSON.stringify({ valid: false, error: "Unknown or invalid code" }),
       { status: 404, headers: { "Content-Type": "application/json" } }
@@ -48,7 +82,6 @@ export default async (req, context) => {
   const url = new URL(req.url);
   const action = url.searchParams.get("action");
 
-  // Status only
   if (action !== "use") {
     return new Response(
       JSON.stringify({
@@ -65,8 +98,8 @@ export default async (req, context) => {
     );
   }
 
-  // Use one download
   if (remaining <= 0) {
+    await writeLog(token, "exhausted", 0, 0, req);
     return new Response(
       JSON.stringify({
         valid: true,
@@ -81,6 +114,7 @@ export default async (req, context) => {
 
   const albumBlob = await store.get(ALBUM_KEY, { type: "stream" });
   if (!albumBlob) {
+    await writeLog(token, "album_missing", remaining, remaining, req);
     return new Response(
       JSON.stringify({ error: "Album not uploaded yet. Use POST /api/admin/upload-album to upload the ZIP." }),
       { status: 503, headers: { "Content-Type": "application/json" } }
@@ -95,6 +129,8 @@ export default async (req, context) => {
     exhausted_at: newRemaining === 0 ? now : (data.exhausted_at || null),
   };
   await store.setJSON(token, newData);
+
+  await writeLog(token, "success", remaining, newRemaining, req);
 
   return new Response(albumBlob, {
     status: 200,

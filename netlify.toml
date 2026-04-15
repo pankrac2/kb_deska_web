@@ -43,3 +43,31 @@
   to = "/.netlify/functions/admin-exhausted"
   status = 200
   force = true
+
+# Admin: list all tokens with status
+[[redirects]]
+  from = "/api/admin/list-tokens"
+  to = "/.netlify/functions/admin-list-tokens"
+  status = 200
+  force = true
+
+# Admin: delete tokens
+[[redirects]]
+  from = "/api/admin/delete-tokens"
+  to = "/.netlify/functions/admin-delete-tokens"
+  status = 200
+  force = true
+
+# Admin: view download event log
+[[redirects]]
+  from = "/api/admin/download-log"
+  to = "/.netlify/functions/admin-download-log"
+  status = 200
+  force = true
+
+# Admin: refund download count for a token
+[[redirects]]
+  from = "/api/admin/refund"
+  to = "/.netlify/functions/admin-refund"
+  status = 200
+  force = true

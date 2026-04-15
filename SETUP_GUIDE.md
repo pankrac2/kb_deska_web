@@ -18,7 +18,7 @@ The album ZIP is stored in **Netlify Blobs** and uploaded after the site is depl
 
 ---
 
-## Step 2: Push the project to Git (if you haven’t)
+## Step 2: Push the project to Git (if you haven't)
 
 ```bash
 cd d:\data\projects\kb_deska_web
@@ -42,36 +42,36 @@ git push -u origin main
 ## Step 3: Create the site on Netlify
 
 1. Go to [app.netlify.com](https://app.netlify.com) and log in.
-2. Click **“Add new site”** → **“Import an existing project”**.
+2. Click **"Add new site"** → **"Import an existing project"**.
 3. Choose **GitHub** (or GitLab/Bitbucket), authorize Netlify if asked.
 4. Pick the repository that contains this project.
 5. **Build settings** (Netlify should detect them from `netlify.toml`; verify):
    - **Build command:** `npm run build` (or leave default)
    - **Publish directory:** `public`
    - **Functions directory:** `netlify/functions` (or leave default)
-6. **Do not** add environment variables yet — click **“Deploy site”** (or “Deploy” without env vars).
+6. **Do not** add environment variables yet — click **"Deploy site"** (or "Deploy" without env vars).
 
-Wait for the first deploy to finish. You’ll get a URL like `https://random-name-12345.netlify.app`.
+Wait for the first deploy to finish. You'll get a URL like `https://random-name-12345.netlify.app`.
 
 ---
 
 ## Step 4: Set environment variables
 
 1. In Netlify: **Site overview** → **Site configuration** → **Environment variables** (or **Site settings** → **Environment variables**).
-2. Click **“Add a variable”** / **“Add environment variable”** and add:
+2. Click **"Add a variable"** / **"Add environment variable"** and add:
 
 | Variable       | Value                | Scopes        |
 |----------------|----------------------|---------------|
 | `ADMIN_SECRET` | A long random string | All           |
 | `SITE_URL`     | Your site URL        | All (optional)|
 
-- **ADMIN_SECRET**  
-  Generate a random string (e.g. 32+ characters). Used for uploading the album, generating tokens, and the exhausted list.  
+- **ADMIN_SECRET**
+  Generate a random string (e.g. 32+ characters). Used for all admin APIs (upload, generate, list, delete, log, refund, exhausted).
   Example (run in terminal): `node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"`
 
-- **SITE_URL**  
-  Your public site URL. For a custom domain use that (e.g. `https://album.xxx.cz`). For the default Netlify URL use e.g. `https://random-name-12345.netlify.app`.  
-  If you don’t set it, the API will use the request host when generating links; setting it is recommended.
+- **SITE_URL**
+  Your public site URL. For a custom domain use that (e.g. `https://album.xxx.cz`). For the default Netlify URL use e.g. `https://random-name-12345.netlify.app`.
+  If you don't set it, the API will use the request host when generating links; setting it is recommended.
 
 3. Save. Then trigger a **new deploy**: **Deploys** → **Trigger deploy** → **Deploy site**.
 
@@ -81,7 +81,7 @@ Wait for the first deploy to finish. You’ll get a URL like `https://random-nam
 
 1. **Site configuration** → **Domain management** → **Add domain** / **Add custom domain**.
 2. Enter your domain (e.g. `album.xxx.cz`).
-3. Follow Netlify’s instructions to add the DNS records at your domain provider (CNAME or A record).
+3. Follow Netlify's instructions to add the DNS records at your domain provider (CNAME or A record).
 4. Enable **HTTPS** (Netlify will issue a certificate automatically).
 5. Set **SITE_URL** (in env vars) to `https://album.xxx.cz` (or your chosen domain) and redeploy once.
 
@@ -89,7 +89,7 @@ Wait for the first deploy to finish. You’ll get a URL like `https://random-nam
 
 ## Step 6: Upload the album and verify the site
 
-1. **Upload the album ZIP**  
+1. **Upload the album ZIP**
    The album is stored in Netlify Blobs. Upload it via the admin API (replace `YOUR-SITE`, `YOUR_ADMIN_SECRET`, and the file path):
 
    **Windows (PowerShell):**
@@ -108,10 +108,10 @@ Wait for the first deploy to finish. You’ll get a URL like `https://random-nam
 
    You should get `{"ok":true,"message":"Album uploaded successfully","size":12345}`. Re-uploading replaces the previous album.
 
-2. **Main page**  
+2. **Main page**
    Open `https://your-site.netlify.app` (or your custom domain). You should see the main page.
 
-3. **Download page without token**  
+3. **Download page without token**
    Open `https://your-site.netlify.app/download/`. You should see a message that the address is invalid or the code is missing.
 
 4. **Generate a test token**
@@ -124,9 +124,9 @@ Wait for the first deploy to finish. You’ll get a URL like `https://random-nam
 
    You should get JSON with `urls` containing one URL.
 
-5. **Test the download page**  
-   Open that URL in the browser. You should see “X download(s) left” and a “Stáhnout album” button.  
-   Click it: the album ZIP should download directly (streamed from Blobs).  
+5. **Test the download page**
+   Open that URL in the browser. You should see "X download(s) left" and a "Stáhnout album" button.
+   Click it: the album ZIP should download directly (streamed from Blobs).
    Refresh the page: remaining count should decrease. After 3 uses (if you used `maxDownloads: 3`) it should show that the code is used up.
 
 If anything fails, check **Site configuration** → **Functions** and **Deploy** logs.
@@ -165,7 +165,7 @@ If anything fails, check **Site configuration** → **Functions** and **Deploy**
    node scripts/generate-qr.mjs urls-new.json qr-codes
    ```
 
-   PNGs will be in the `qr-codes` folder. Use them in your booklet layout or send to the printer.
+   SVGs will be in the `qr-codes` folder. Use them in your booklet layout or send to the printer.
 
 5. **When you need more tokens later**, run the same with a different count:
 
@@ -176,7 +176,61 @@ If anything fails, check **Site configuration** → **Functions** and **Deploy**
 
 ---
 
-## Step 8: (Optional) Export list of used codes
+## Step 8: (Optional) List all tokens
+
+View every generated token and its status:
+
+```bash
+curl "https://your-site.netlify.app/api/admin/list-tokens?secret=YOUR_ADMIN_SECRET"
+```
+
+Filter by status (`active`, `exhausted`, or `all`):
+
+```bash
+curl "https://your-site.netlify.app/api/admin/list-tokens?secret=YOUR_ADMIN_SECRET&status=active"
+```
+
+---
+
+## Step 9: (Optional) Delete tokens
+
+Remove tokens you no longer need:
+
+```bash
+curl -X POST https://your-site.netlify.app/api/admin/delete-tokens \
+  -H "Content-Type: application/json" \
+  -d '{"secret":"YOUR_ADMIN_SECRET","tokens":["token1","token2"]}'
+```
+
+---
+
+## Step 10: (Optional) View the download log
+
+Every download attempt is logged. View the log to see who downloaded, when, and whether it succeeded:
+
+```bash
+curl "https://your-site.netlify.app/api/admin/download-log?secret=YOUR_ADMIN_SECRET"
+```
+
+Filter by a specific token: add `&token=SPECIFIC_TOKEN`. Limit results: add `&limit=50`.
+
+Each log entry contains: `token`, `timestamp`, `outcome` (`success` / `exhausted` / `invalid_token` / `album_missing`), `remaining_before`, `remaining_after`, `ip`, `user_agent`.
+
+---
+
+## Step 11: (Optional) Refund a download
+
+If the download log shows a "success" but the user reports the download failed (e.g. network error), you can restore their download count:
+
+```bash
+curl -X POST https://your-site.netlify.app/api/admin/refund \
+  -H "Content-Type: application/json" \
+  -d '{"secret":"YOUR_ADMIN_SECRET","token":"THE_TOKEN","amount":1}'
+```
+
+---
+
+## Step 12: (Optional) Export list of used codes
 
 To see when codes were exhausted (for your records):
 
@@ -190,24 +244,25 @@ Save the JSON to a file if you need it for accounting.
 
 ## Checklist
 
-- [ ] Repo pushed to GitHub/GitLab/Bitbucket  
-- [ ] New site created on Netlify, connected to repo  
-- [ ] First deploy successful  
-- [ ] `ADMIN_SECRET` set in Netlify env  
-- [ ] `SITE_URL` set (optional but recommended)  
-- [ ] New deploy triggered after adding env vars  
-- [ ] Album ZIP uploaded via `POST /api/admin/upload-album`  
-- [ ] Custom domain added and HTTPS on (if you use one)  
-- [ ] Test token generated and download flow tested  
-- [ ] Local `.env` with `SITE_URL` and `ADMIN_SECRET`  
-- [ ] First batch of tokens generated with `call-generate.mjs`  
-- [ ] QR codes generated with `generate-qr.mjs` and used in booklet  
+- [ ] Repo pushed to GitHub/GitLab/Bitbucket
+- [ ] New site created on Netlify, connected to repo
+- [ ] First deploy successful
+- [ ] `ADMIN_SECRET` set in Netlify env
+- [ ] `SITE_URL` set (optional but recommended)
+- [ ] New deploy triggered after adding env vars
+- [ ] Album ZIP uploaded via `POST /api/admin/upload-album`
+- [ ] Custom domain added and HTTPS on (if you use one)
+- [ ] Test token generated and download flow tested
+- [ ] Local `.env` with `SITE_URL` and `ADMIN_SECRET`
+- [ ] First batch of tokens generated with `call-generate.mjs`
+- [ ] QR codes generated with `generate-qr.mjs` and used in booklet
 
 ---
 
 ## Troubleshooting
 
-- **“ADMIN_SECRET not configured”** → Add `ADMIN_SECRET` in Netlify and redeploy.  
-- **“Album not uploaded yet”** when clicking Stáhnout → Upload the ZIP via `POST /api/admin/upload-album` (see Step 6).  
-- **Upload returns 401 Unauthorized** → Check that the `X-Admin-Secret` header (or form field `secret`) matches your `ADMIN_SECRET` env var.  
-- **QR script says “No URLs found”** → Run `call-generate.mjs` first so that `urls.json` or `urls-new.json` exists and contains an `urls` array.
+- **"ADMIN_SECRET not configured"** → Add `ADMIN_SECRET` in Netlify and redeploy.
+- **"Album not uploaded yet"** when clicking Stáhnout → Upload the ZIP via `POST /api/admin/upload-album` (see Step 6).
+- **Upload returns 401 Unauthorized** → Check that the `X-Admin-Secret` header (or form field `secret`) matches your `ADMIN_SECRET` env var.
+- **QR script says "No URLs found"** → Run `call-generate.mjs` first so that `urls.json` or `urls-new.json` exists and contains an `urls` array.
+- **Download log is empty** → Logs are only created when someone uses `action=use`. Status-only checks are not logged.
